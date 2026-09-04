@@ -40,21 +40,23 @@ function verifySignature(req) {
   }
 }
 
-// ⚠️ CONFIRM: log a real payload (test call) and fix these field paths.
-// ZCC nests the message under payload.object; names below are best-guess.
+// Field paths confirmed against a real payload:
+// payload.object.{inbox_id, consumer_number, message_id, date_time_ms}
 function extractReceived(payload) {
   const o = payload.object || payload;
   return {
     id: o.message_id || o.id,
     inboxId: o.inbox_id,
     callerAni: o.consumer_number || o.from || o.caller_number,
-    receivedAt: o.date_time || new Date().toISOString(),
+    receivedAt: o.date_time_ms ? new Date(o.date_time_ms).toISOString()
+      : (o.date_time || new Date().toISOString()),
     downloadUrl: o.download_url || o.recording?.download_url || null,
   };
 }
 
 // Resolve the audio URL: prefer one in the payload, else look it up via the
-// Inboxes messages API (needs the inbox read scope).
+// Inboxes messages API. That fallback needs the scope:
+//   contact_center:read:inbox_messages:admin
 async function resolveDownloadUrl(vm) {
   if (vm.downloadUrl) return vm.downloadUrl;
   const token = await getToken();
@@ -65,7 +67,7 @@ async function resolveDownloadUrl(vm) {
   if (!res.ok) throw new Error(`inbox messages fetch failed: ${res.status} ${await res.text()}`);
   const data = await res.json();
   const list = data.messages || data.inbox_messages || [];
-  const msg = list.find((m) => (m.message_id || m.id) === vm.id) || list[0]; // ⚠️ CONFIRM
+  const msg = list.find((m) => (m.message_id || m.id) === vm.id) || list[0];
   return msg?.download_url || msg?.playback_url || null;
 }
 
@@ -89,9 +91,6 @@ async function fetchMedia(url) {
 async function handleWebhook(req, res) {
   const { event, payload } = req.body || {};
 
-  // TEMP: log the full incoming event so we can confirm the real field paths.
-  console.log('[zoom] incoming:', event, JSON.stringify(req.body));
-
   // Endpoint validation challenge (fires once when you save the URL).
   if (event === 'endpoint.url_validation') {
     const encryptedToken = crypto
@@ -107,7 +106,6 @@ async function handleWebhook(req, res) {
   try {
     if (event !== 'contact_center.inbox_message_received') return;
     const vm = extractReceived(payload);
-    console.log('[zoom] parsed vm:', JSON.stringify(vm), 'expected inbox:', EMERGENCY_INBOX_ID);
     if (vm.inboxId !== EMERGENCY_INBOX_ID) return; // only the emergency inbox
 
     const url = await resolveDownloadUrl(vm);
