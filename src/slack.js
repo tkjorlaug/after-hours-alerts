@@ -12,7 +12,11 @@ function extFor(contentType) {
 // Uploads the recording to the channel with the caller number as the message.
 // files.uploadV2 posts the file inline, so Slack renders a native audio player.
 async function postVoicemail({ callerAni, receivedAt, buf, contentType }) {
-  const when = new Date(receivedAt).toLocaleString('en-US', { timeZone: 'America/New_York' });
+  const when = new Date(receivedAt).toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  });
   const from = callerAni || 'Unknown caller';
 
   await client.files.uploadV2({
@@ -20,7 +24,7 @@ async function postVoicemail({ callerAni, receivedAt, buf, contentType }) {
     file: buf,
     filename: `emergency-voicemail.${extFor(contentType)}`,
     title: `Emergency voicemail from ${from}`,
-    initial_comment: `🚨 *Emergency voicemail*\n*From:* ${from}\n*Received:* ${when} ET`,
+    initial_comment: `🚨 *EMERGENCY VOICEMAIL* 🚨\n*From:* ${from}\n*Received:* ${when} ET`,
   });
 }
 
