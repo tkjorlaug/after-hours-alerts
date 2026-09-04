@@ -1,0 +1,16 @@
+{
+  "name": "after-hours-alerts",
+  "version": "0.1.0",
+  "description": "ZCC emergency voicemail -> Slack (caller number + inline recording)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@slack/web-api": "^7.8.0",
+    "express": "^4.21.2"
+  }
+}
