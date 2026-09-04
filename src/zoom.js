@@ -89,6 +89,9 @@ async function fetchMedia(url) {
 async function handleWebhook(req, res) {
   const { event, payload } = req.body || {};
 
+  // TEMP: log the full incoming event so we can confirm the real field paths.
+  console.log('[zoom] incoming:', event, JSON.stringify(req.body));
+
   // Endpoint validation challenge (fires once when you save the URL).
   if (event === 'endpoint.url_validation') {
     const encryptedToken = crypto
@@ -104,6 +107,7 @@ async function handleWebhook(req, res) {
   try {
     if (event !== 'contact_center.inbox_message_received') return;
     const vm = extractReceived(payload);
+    console.log('[zoom] parsed vm:', JSON.stringify(vm), 'expected inbox:', EMERGENCY_INBOX_ID);
     if (vm.inboxId !== EMERGENCY_INBOX_ID) return; // only the emergency inbox
 
     const url = await resolveDownloadUrl(vm);
